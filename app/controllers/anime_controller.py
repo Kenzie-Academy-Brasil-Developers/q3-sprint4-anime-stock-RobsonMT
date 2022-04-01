@@ -1,9 +1,8 @@
-from functools import wraps
 from http import HTTPStatus
-from typing import Callable
 from flask import request
-from psycopg2.errors import UniqueViolation
+from psycopg2.errors import UniqueViolation, UndefinedTable
 
+from app.controllers.anime_decorator_validates import validate_patch_key, validate_post_keys
 from app.models.anime_model import Anime
 
 
@@ -12,7 +11,7 @@ def get_animes():
     return {"data": animes}
 
 
-@validate_keys()
+@validate_post_keys()
 def add_anime():
     data = request.get_json()
 
@@ -20,10 +19,44 @@ def add_anime():
     try:
         inserted_anime = anime.insert_into()
     except UniqueViolation:
-        return {"error": "anime already in stock"}, HTTPStatus.UNPROCESSABLE_ENTITY
-
-    print("#" * 20)
-    print(inserted_anime)
-    print("#" * 20)
+        return {"error": "anime in already exists"}, HTTPStatus.UNPROCESSABLE_ENTITY
 
     return inserted_anime, HTTPStatus.CREATED
+
+
+def get_anime_by_id(anime_id: int):
+    try:
+        anime = Anime.select_by_id(anime_id)
+        if not anime:
+            raise IndexError
+    except (IndexError, UndefinedTable):
+        return {"error": "Not Found"}, HTTPStatus.NOT_FOUND
+
+    return {"data": [anime]}
+
+
+@validate_patch_key()
+def update_anime(anime_id: int):
+    data = request.get_json()
+
+    try:
+        updated_anime = Anime.update_by_id(anime_id, data)
+        if not updated_anime:
+            raise IndexError
+    except (IndexError, UndefinedTable):
+        return {"error": "Not Found"}, HTTPStatus.NOT_FOUND
+    except UniqueViolation:
+        return {"error": "anime in already exists"}, HTTPStatus.UNPROCESSABLE_ENTITY
+
+    return updated_anime
+
+
+def delete_anime(anime_id: int):
+    try:
+        deleted_anime = Anime.delete_by_id(anime_id)
+        if not deleted_anime:
+            raise IndexError
+    except (IndexError, UndefinedTable):
+        return {"error": "Not Found"}, HTTPStatus.NOT_FOUND
+
+    return "", HTTPStatus.NO_CONTENT

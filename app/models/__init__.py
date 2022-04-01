@@ -1,6 +1,6 @@
+from psycopg2 import extras
 import psycopg2
 import os
-from psycopg2 import sql, extras
 
 
 configs = {
