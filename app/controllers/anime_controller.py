@@ -2,7 +2,11 @@ from http import HTTPStatus
 from flask import request
 from psycopg2.errors import UniqueViolation, UndefinedTable
 
-from app.controllers.anime_decorator_validates import validate_patch_key, validate_post_keys
+from app.controllers.anime_decorator_validates import (
+    validate_patch_key,
+    validate_post_keys,
+)
+from app.controllers.exc import missingKeysError
 from app.models.anime_model import Anime
 
 
@@ -11,12 +15,17 @@ def get_animes():
     return {"data": animes}
 
 
-@validate_post_keys()
+# @validate_post_keys()
 def add_anime():
     data = request.get_json()
 
     anime = Anime(**data)
+    missing_keys = set(anime.allowed_keys).difference(data)
+    wrong_keys = [key for key in data if not key in anime.allowed_keys]
+
     try:
+        if missing_keys:
+            raise missingKeysError(anime.allowed_keys, missing_keys)
         inserted_anime = anime.insert_into()
     except UniqueViolation:
         return {"error": "anime in already exists"}, HTTPStatus.UNPROCESSABLE_ENTITY
@@ -35,7 +44,7 @@ def get_anime_by_id(anime_id: int):
     return {"data": [anime]}
 
 
-@validate_patch_key()
+# @validate_patch_key()
 def update_anime(anime_id: int):
     data = request.get_json()
 

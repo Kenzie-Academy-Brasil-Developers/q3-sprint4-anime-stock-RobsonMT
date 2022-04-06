@@ -4,6 +4,8 @@ from app.models import DatabaseConnector
 
 
 class Anime(DatabaseConnector):
+    allowed_keys = ["anime", "released_date", "seasons"]
+
     def __init__(self, **kwargs) -> None:
         self.anime: str = kwargs["anime"].title()
         self.released_date: str = kwargs["released_date"]
